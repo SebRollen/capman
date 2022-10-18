@@ -6,11 +6,11 @@ use bevy::utils::HashSet;
 use bevy_common_assets::json::JsonAssetPlugin;
 use serde::{Deserialize, Serialize};
 
-use Rotation::*;
 use crate::board_dimensions::BoardDimensions;
+use Rotation::*;
 
-use crate::common::Direction;
 use crate::common::position::Position;
+use crate::common::Direction;
 use crate::game_assets::loaded_assets::LoadedAssets;
 use crate::life_cycle::LifeCycle::Loading;
 use crate::map::board::Board;
@@ -21,12 +21,8 @@ pub struct MapPlugin;
 
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_plugin(JsonAssetPlugin::<Fields>::new(&["map.json"]))
-            .add_system_set(
-                SystemSet::on_exit(Loading).with_system(create_board_and_map)
-            )
-        ;
+        app.add_plugin(JsonAssetPlugin::<Fields>::new(&["map.json"]))
+            .add_system_set(SystemSet::on_exit(Loading).with_system(create_board_and_map));
     }
 }
 
@@ -35,7 +31,9 @@ fn create_board_and_map(
     game_asset_handles: Res<LoadedAssets>,
     fields_assets: Res<Assets<Fields>>,
 ) {
-    let fields = fields_assets.get(&game_asset_handles.get_handle("maps/default.map.json")).expect("the map should be loaded at this point");
+    let fields = fields_assets
+        .get(&game_asset_handles.get_handle("maps/default.map.json"))
+        .expect("the map should be loaded at this point");
     let map = Map::new(&fields);
     let board = Board::new(&map);
     let board_dimensions = BoardDimensions::new(&board);
@@ -58,35 +56,44 @@ pub struct Map {
 impl Map {
     fn new(fields: &Fields) -> Self {
         Map {
-            elements_map: fields.clone().0.into_iter()
+            elements_map: fields
+                .clone()
+                .0
+                .into_iter()
                 .map(|f| (f.position, f.element))
                 .collect(),
         }
     }
 
     pub(in crate::map) fn get_width(&self) -> usize {
-        self.elements_map.iter()
+        self.elements_map
+            .iter()
             .map(|(pos, _)| pos.x)
             .collect::<HashSet<_>>()
             .len()
     }
 
     pub(in crate::map) fn get_height(&self) -> usize {
-        self.elements_map.iter()
+        self.elements_map
+            .iter()
             .map(|(pos, _)| pos.y)
             .collect::<HashSet<_>>()
             .len()
     }
 
     /// Return an iterator over all positions matching the given element filter.
-    pub fn get_positions_matching(&self, filter: impl Fn(&Element) -> bool) -> impl IntoIterator<Item=&Position> {
-        self.elements_map.iter()
+    pub fn get_positions_matching(
+        &self,
+        filter: impl Fn(&Element) -> bool,
+    ) -> impl IntoIterator<Item = &Position> {
+        self.elements_map
+            .iter()
             .filter(move |(_, elem)| (filter)(elem))
             .map(|(pos, _)| pos)
     }
 
     /// Return an iterator over all positions and elements.
-    pub fn position_element_iter(&self) -> impl IntoIterator<Item=(&Position, &Element)> {
+    pub fn position_element_iter(&self) -> impl IntoIterator<Item = (&Position, &Element)> {
         self.elements_map.iter()
     }
 }
@@ -105,9 +112,9 @@ pub enum Element {
         is_corner: bool,
     },
     GhostHouseEntrance {
-        rotation: Rotation
+        rotation: Rotation,
     },
-    PacManSpawn,
+    CapManSpawn,
     DotSpawn,
     EnergizerSpawn,
     FruitSpawn,
@@ -156,12 +163,10 @@ impl Rotation {
 /// The alternative would be a match/if let expression, which is much longer and harder to read.
 #[macro_export]
 macro_rules! is {
-    ($pattern:pat) => {
-        {
-            |e: &crate::map::Element| match e {
-                $pattern => true,
-                _ => false
-            }
+    ($pattern:pat) => {{
+        |e: &crate::map::Element| match e {
+            $pattern => true,
+            _ => false,
         }
-    };
+    }};
 }

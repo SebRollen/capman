@@ -7,7 +7,7 @@ pub const POINTS_PER_GHOST: usize = 200;
 
 pub const TUNNEL_Z: f32 = 300.0;
 pub const TEXT_Z: f32 = 200.0;
-pub const PACMAN_Z: f32 = 100.0;
+pub const CAPMAN_Z: f32 = 100.0;
 pub const BLINKY_Z: f32 = 90.0;
 pub const PINKY_Z: f32 = 80.0;
 pub const INKY_Z: f32 = 700.0;

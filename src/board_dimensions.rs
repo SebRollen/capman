@@ -1,13 +1,13 @@
-use bevy::prelude::*;
 use crate::common::position::Position;
+use crate::common::Direction::*;
 use crate::constants::{WINDOW_HEIGHT, WINDOW_WIDTH};
 use crate::map::board::Board;
-use crate::common::Direction::*;
+use bevy::prelude::*;
 
 pub struct BoardDimensions {
     field_dimension: f32,
     board_origin: Vec2,
-    board_width: f32
+    board_width: f32,
 }
 
 impl BoardDimensions {
@@ -20,9 +20,9 @@ impl BoardDimensions {
             field_dimension,
             board_origin: Vec2::new(
                 WINDOW_WIDTH / 2.0 - (board_columns * field_dimension) / 2.0,
-                WINDOW_HEIGHT * 0.1
+                WINDOW_HEIGHT * 0.1,
             ),
-            board_width: board_columns * field_dimension
+            board_width: board_columns * field_dimension,
         }
     }
 
@@ -34,47 +34,47 @@ impl BoardDimensions {
         self.field_dimension
     }
 
-    pub fn pacman(&self) -> f32 {
+    pub fn capman(&self) -> f32 {
         self.field_dimension + self.field_dimension * 0.6
     }
 
     pub fn ghost(&self) -> f32 {
-        self.pacman()
+        self.capman()
     }
 
     pub fn dot(&self) -> f32 {
-        self.pacman()
+        self.capman()
     }
 
     pub fn energizer(&self) -> f32 {
-        self.pacman()
+        self.capman()
     }
 
     pub fn fruit(&self) -> f32 {
-        self.pacman()
+        self.capman()
     }
 
     pub fn tunnel(&self) -> f32 {
-        self.pacman()
+        self.capman()
     }
 
     pub fn life(&self) -> f32 {
-        self.pacman()
+        self.capman()
     }
 
-    pub fn pacman_base_speed(&self) -> f32 {
+    pub fn capman_base_speed(&self) -> f32 {
         self.field_dimension * 9.0
     }
 
     pub fn ghost_base_speed(&self) -> f32 {
-        self.pacman_base_speed()
+        self.capman_base_speed()
     }
 
     pub fn pos_to_vec(&self, pos: &Position, z: f32) -> Vec3 {
         Vec3::new(
             self.board_origin.x + self.field_dimension * pos.x as f32,
             self.board_origin.y + self.field_dimension * pos.y as f32,
-            z
+            z,
         )
     }
 
@@ -82,12 +82,18 @@ impl BoardDimensions {
         Transform::from_translation(self.pos_to_vec(pos, z))
     }
 
-    pub fn positions_to_vec<'a>(&'a self, positions: impl IntoIterator<Item=&'a Position>, z: f32) -> Vec3 {
+    pub fn positions_to_vec<'a>(
+        &'a self,
+        positions: impl IntoIterator<Item = &'a Position>,
+        z: f32,
+    ) -> Vec3 {
         let positions = positions.into_iter().collect::<Vec<_>>();
         assert_eq!(positions.len(), 2);
 
         let (pos0, pos1) = (positions[0], positions[1]);
-        let neighbour_direction = pos0.get_neighbour_direction(&pos1).expect("the two positions must be neighbored");
+        let neighbour_direction = pos0
+            .get_neighbour_direction(&pos1)
+            .expect("the two positions must be neighbored");
         let (vec0, vec1) = (self.pos_to_vec(pos0, 0.0), self.pos_to_vec(pos1, 0.0));
 
         match neighbour_direction {
@@ -104,7 +110,11 @@ impl BoardDimensions {
         }
     }
 
-    pub fn positions_to_trans<'a>(&'a self, positions: impl IntoIterator<Item=&'a Position>, z: f32) -> Transform {
+    pub fn positions_to_trans<'a>(
+        &'a self,
+        positions: impl IntoIterator<Item = &'a Position>,
+        z: f32,
+    ) -> Transform {
         Transform::from_translation(self.positions_to_vec(positions, z))
     }
 
@@ -112,10 +122,7 @@ impl BoardDimensions {
         let x = (vec.x - self.board_origin.x + self.field_dimension / 2.0) / self.field_dimension;
         let y = (vec.y - self.board_origin.y + self.field_dimension / 2.0) / self.field_dimension;
 
-        Position::new(
-            x as isize,
-            y as isize
-        )
+        Position::new(x as isize, y as isize)
     }
 
     pub fn trans_to_pos(&self, transform: &Transform) -> Position {

@@ -1,42 +1,40 @@
-use std::fmt::Formatter;
+use crate::board_dimensions::BoardDimensions;
 use bevy::ecs::event::Event;
 use bevy::ecs::query::WorldQuery;
 use bevy::prelude::*;
-use crate::board_dimensions::BoardDimensions;
+use std::fmt::Formatter;
 
 use crate::common::Direction;
-use crate::edibles::energizer::EnergizerOver;
-use crate::life_cycle::LifeCycle::*;
-use crate::ghosts::target::Target;
-use crate::ghost_house::GhostHouse;
-use crate::ghosts::Ghost;
-use crate::ghosts::schedule::Schedule;
-use crate::interactions::{EEnergizerEaten, EGhostEaten, LPacmanEnergizerHitDetection, LPacmanGhostHitDetection};
 use crate::common::XYEqual;
+use crate::edibles::energizer::EnergizerOver;
+use crate::ghost_house::GhostHouse;
+use crate::ghosts::schedule::Schedule;
 use crate::ghosts::state::State::*;
+use crate::ghosts::target::Target;
+use crate::ghosts::Ghost;
+use crate::interactions::{
+    EEnergizerEaten, EGhostEaten, LCapmanEnergizerHitDetection, LCapmanGhostHitDetection,
+};
+use crate::life_cycle::LifeCycle::*;
 
 pub struct StatePlugin;
 
 impl Plugin for StatePlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_system_set(
-                SystemSet::on_update(Running)
-                    .with_system(update_state)
-                    .after(LPacmanGhostHitDetection)
-                    .after(LPacmanEnergizerHitDetection)
-                    .label(StateSetter)
-            )
-            .add_system_set(
-                SystemSet::on_update(GhostEatenPause)
-                    .with_system(update_state_on_eaten_pause)
-            )
-        ;
+        app.add_system_set(
+            SystemSet::on_update(Running)
+                .with_system(update_state)
+                .after(LCapmanGhostHitDetection)
+                .after(LCapmanEnergizerHitDetection)
+                .label(StateSetter),
+        )
+        .add_system_set(
+            SystemSet::on_update(GhostEatenPause).with_system(update_state_on_eaten_pause),
+        );
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[derive(SystemLabel)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemLabel)]
 pub struct StateSetter;
 
 #[derive(Component, Copy, Clone, Debug, Eq, PartialEq)]
@@ -101,7 +99,7 @@ fn update_state_on_eaten_pause(
         match *components.state {
             Spawned => process_spawned(&schedule, &ghost_house, &mut components),
             Eaten => process_eaten(&ghost_house, &mut components),
-            _ => continue
+            _ => continue,
         }
     }
 }
@@ -119,15 +117,12 @@ fn energizer_over(mut events: EventReader<EnergizerOver>) -> bool {
 }
 
 fn ghost_eaten(entity: Entity, eaten_events: &Vec<EGhostEaten>) -> bool {
-    eaten_events
-        .iter()
-        .filter(|e| e.0 == entity)
-        .count() > 0
+    eaten_events.iter().filter(|e| e.0 == entity).count() > 0
 }
 
 fn process_energizer_eaten(
     dimensions: &BoardDimensions,
-    components: &mut StateUpdateComponentsItem
+    components: &mut StateUpdateComponentsItem,
 ) {
     let target_coordinates = if components.target.is_set() {
         components.target.get()
@@ -135,7 +130,12 @@ fn process_energizer_eaten(
         components.transform.translation
     };
     let target_position = dimensions.vec_to_pos(&target_coordinates);
-    let coordinates_ghost_came_from = dimensions.pos_to_vec(&target_position.get_neighbour_in_direction(&components.direction.opposite()).position, 0.0);
+    let coordinates_ghost_came_from = dimensions.pos_to_vec(
+        &target_position
+            .get_neighbour_in_direction(&components.direction.opposite())
+            .position,
+        0.0,
+    );
 
     *components.state = State::Frightened;
     components.direction.reverse();
@@ -173,7 +173,12 @@ fn process_scatter_chase(
         };
 
         let target_position = dimensions.vec_to_pos(&target_coordinates);
-        let coordinates_ghost_came_from = dimensions.pos_to_vec(&target_position.get_neighbour_in_direction(&components.direction.opposite()).position, 0.0);
+        let coordinates_ghost_came_from = dimensions.pos_to_vec(
+            &target_position
+                .get_neighbour_in_direction(&components.direction.opposite())
+                .position,
+            0.0,
+        );
 
         components.direction.reverse();
         components.target.set(coordinates_ghost_came_from);
@@ -190,10 +195,7 @@ fn process_frightened(
     }
 }
 
-fn process_eaten(
-    ghost_house: &GhostHouse,
-    components: &mut StateUpdateComponentsItem,
-) {
+fn process_eaten(ghost_house: &GhostHouse, components: &mut StateUpdateComponentsItem) {
     let coordinates = components.transform.translation;
 
     if coordinates.xy_equal_to(&ghost_house.respawn_coordinates_of(components.ghost)) {
@@ -210,24 +212,28 @@ impl std::fmt::Display for State {
 #[macro_export]
 macro_rules! state_skip_if {
     ($components:ident.$state:ident = $pattern:pat) => {
-        if let $pattern = *$components.$state { continue; }
+        if let $pattern = *$components.$state {
+            continue;
+        }
     };
 
     ($state:ident = $pattern:pat) => {
-        if let $pattern = *$state { continue; }
+        if let $pattern = *$state {
+            continue;
+        }
     };
 
     ($components:ident.$state:ident != $pattern:pat) => {
         match *$components.$state {
             $pattern => (),
-            _ => continue
+            _ => continue,
         }
     };
 
     ($state:ident != $pattern:pat) => {
         match *$state {
             $pattern => (),
-            _ => continue
+            _ => continue,
         }
     };
 }

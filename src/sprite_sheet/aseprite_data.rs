@@ -1,6 +1,6 @@
+use serde::Deserialize;
 use std::cmp::Ordering::*;
 use std::collections::HashMap;
-use serde::Deserialize;
 
 use crate::common::position::Position;
 use crate::sprite_sheet::rectangles::{Rect, RectIter};
@@ -24,14 +24,14 @@ impl AsepriteData {
         frames_vec.sort_by(|(ka, _), (kb, _)| match ka.len().cmp(&kb.len()) {
             Less => Less,
             Greater => Greater,
-            Equal => ka.cmp(&kb)
+            Equal => ka.cmp(&kb),
         });
 
         RectIter::new(
             frames_vec
                 .into_iter()
                 .map(|(_, fv)| fv.frame)
-                .map(|f| Rect::new(Position::new(f.x as isize, f.y as isize), f.w, f.h))
+                .map(|f| Rect::new(Position::new(f.x as isize, f.y as isize), f.w, f.h)),
         )
     }
 }
@@ -51,11 +51,11 @@ struct Frame {
 
 #[cfg(test)]
 mod tests {
-    use std::fs::File;
-    use std::io::BufReader;
     use crate::common::position::Position;
     use crate::sprite_sheet::aseprite_data::{AsepriteData, Frame};
     use crate::sprite_sheet::rectangles::Rect;
+    use std::fs::File;
+    use std::io::BufReader;
 
     #[test]
     fn it_can_be_deserialized() {
@@ -65,15 +65,29 @@ mod tests {
 
         assert_eq!(aseprite_data.frames.len(), 2);
 
-        let sizes = aseprite_data.frames.values().map(|f| f.frame).collect::<Vec<_>>();
+        let sizes = aseprite_data
+            .frames
+            .values()
+            .map(|f| f.frame)
+            .collect::<Vec<_>>();
 
-        assert!(sizes.contains(&Frame { x: 0, y: 0, w: 16, h: 16 }));
-        assert!(sizes.contains(&Frame { x: 16, y: 0, w: 16, h: 16 }));
+        assert!(sizes.contains(&Frame {
+            x: 0,
+            y: 0,
+            w: 16,
+            h: 16
+        }));
+        assert!(sizes.contains(&Frame {
+            x: 16,
+            y: 0,
+            w: 16,
+            h: 16
+        }));
     }
 
     #[test]
     fn it_can_provide_an_ordered_iterator_of_rectangles() {
-        let file = File::open("./test/pacman_dying.aseprite.json").unwrap();
+        let file = File::open("./test/capman_dying.aseprite.json").unwrap();
         let reader = BufReader::new(file);
         let aseprite_data: AsepriteData = serde_json::from_reader(reader).unwrap();
 
@@ -82,7 +96,10 @@ mod tests {
         assert_eq!(rectangles.len(), 12);
 
         for i in 0..12 {
-            assert_eq!(rectangles[i], Rect::new(Position::new(i as isize * 16, 0), 16, 16));
+            assert_eq!(
+                rectangles[i],
+                Rect::new(Position::new(i as isize * 16, 0), 16, 16)
+            );
         }
     }
 }

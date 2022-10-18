@@ -1,24 +1,21 @@
-use std::time::Duration;
-use bevy::prelude::*;
 use crate::board_dimensions::BoardDimensions;
+use bevy::prelude::*;
+use std::time::Duration;
 
 use crate::constants::{FONT, POINTS_PER_DOT, POINTS_PER_ENERGIZER, POINTS_PER_GHOST, TEXT_Z};
 use crate::edibles::energizer::EnergizerOver;
-use crate::interactions::{EDotEaten, EEnergizerEaten, EFruitEaten, EGhostEaten};
-use crate::life_cycle::LifeCycle::{PacmanHit, Running, Start};
 use crate::edibles::fruit::Fruit::*;
 use crate::game_assets::loaded_assets::LoadedAssets;
+use crate::interactions::{EDotEaten, EEnergizerEaten, EFruitEaten, EGhostEaten};
+use crate::life_cycle::LifeCycle::{CapmanHit, Running, Start};
 
 pub struct ScorePlugin;
 
 impl Plugin for ScorePlugin {
     fn build(&self, app: &mut App) {
-        app
-            .insert_resource(Score(0))
+        app.insert_resource(Score(0))
             .insert_resource(EatenGhostCounter(0))
-            .add_system_set(
-                SystemSet::on_enter(Start).with_system(create_score_boards)
-            )
+            .add_system_set(SystemSet::on_enter(Start).with_system(create_score_boards))
             .add_system_set(
                 SystemSet::on_update(Running)
                     .with_system(update_scoreboard)
@@ -27,12 +24,9 @@ impl Plugin for ScorePlugin {
                     .with_system(add_points_for_eaten_ghost_and_display_score_text)
                     .with_system(reset_eaten_ghost_counter_when_energizer_is_over)
                     .with_system(add_points_for_eaten_fruit_and_display_score_text)
-                    .with_system(update_score_texts)
+                    .with_system(update_score_texts),
             )
-            .add_system_set(
-                SystemSet::on_enter(PacmanHit).with_system(despawn_score_texts)
-            )
-        ;
+            .add_system_set(SystemSet::on_enter(CapmanHit).with_system(despawn_score_texts));
     }
 }
 
@@ -61,46 +55,50 @@ struct EatenGhostCounter(usize);
 fn create_score_boards(
     mut commands: Commands,
     game_asset_handles: Res<LoadedAssets>,
-    dimensions: Res<BoardDimensions>
+    dimensions: Res<BoardDimensions>,
 ) {
     let origin = dimensions.origin();
 
-    commands.spawn_bundle(Text2dBundle {
-        text: Text::from_section(
-            "0".to_string(),
-            TextStyle {
-                font: game_asset_handles.get_handle(FONT),
-                font_size: 20.0,
-                color: Color::rgb(1.0, 1.0, 1.0),
-            },
-        ).with_alignment(
-            TextAlignment {
+    commands
+        .spawn_bundle(Text2dBundle {
+            text: Text::from_section(
+                "0".to_string(),
+                TextStyle {
+                    font: game_asset_handles.get_handle(FONT),
+                    font_size: 20.0,
+                    color: Color::rgb(1.0, 1.0, 1.0),
+                },
+            )
+            .with_alignment(TextAlignment {
                 vertical: VerticalAlign::Center,
                 horizontal: HorizontalAlign::Left,
-            }
-        ),
-        transform: Transform::from_xyz(origin.x, origin.y + dimensions.board_height(), 0.0),
-        ..Default::default()
-    })
+            }),
+            transform: Transform::from_xyz(origin.x, origin.y + dimensions.board_height(), 0.0),
+            ..Default::default()
+        })
         .insert(ScoreBoard);
 
-    commands.spawn_bundle(Text2dBundle {
-        text: Text::from_section(
-            "0".to_string(),
-            TextStyle {
-                font: game_asset_handles.get_handle(FONT),
-                font_size: 20.0,
-                color: Color::rgb(1.0, 1.0, 1.0),
-            },
-        ).with_alignment(
-            TextAlignment {
+    commands
+        .spawn_bundle(Text2dBundle {
+            text: Text::from_section(
+                "0".to_string(),
+                TextStyle {
+                    font: game_asset_handles.get_handle(FONT),
+                    font_size: 20.0,
+                    color: Color::rgb(1.0, 1.0, 1.0),
+                },
+            )
+            .with_alignment(TextAlignment {
                 vertical: VerticalAlign::Center,
                 horizontal: HorizontalAlign::Center,
-            }
-        ),
-        transform: Transform::from_xyz(origin.x + dimensions.board_width() / 2.0, origin.y + dimensions.board_height(), 0.0),
-        ..Default::default()
-    })
+            }),
+            transform: Transform::from_xyz(
+                origin.x + dimensions.board_width() / 2.0,
+                origin.y + dimensions.board_height(),
+                0.0,
+            ),
+            ..Default::default()
+        })
         .insert(ScoreBoard);
 
     commands.spawn_bundle(Text2dBundle {
@@ -111,21 +109,21 @@ fn create_score_boards(
                 font_size: 20.0,
                 color: Color::rgb(1.0, 1.0, 1.0),
             },
-        ).with_alignment(
-            TextAlignment {
-                vertical: VerticalAlign::Center,
-                horizontal: HorizontalAlign::Center,
-            }
+        )
+        .with_alignment(TextAlignment {
+            vertical: VerticalAlign::Center,
+            horizontal: HorizontalAlign::Center,
+        }),
+        transform: Transform::from_xyz(
+            origin.x + dimensions.board_width() / 2.0,
+            origin.y + dimensions.board_height() + dimensions.field(),
+            0.0,
         ),
-        transform: Transform::from_xyz(origin.x + dimensions.board_width() / 2.0, origin.y + dimensions.board_height() + dimensions.field(), 0.0),
         ..Default::default()
     });
 }
 
-fn update_scoreboard(
-    score: Res<Score>,
-    mut query: Query<&mut Text, With<ScoreBoard>>,
-) {
+fn update_scoreboard(score: Res<Score>, mut query: Query<&mut Text, With<ScoreBoard>>) {
     if !score.is_changed() {
         return;
     }
@@ -135,10 +133,7 @@ fn update_scoreboard(
     }
 }
 
-fn add_points_for_eaten_dot(
-    mut score: ResMut<Score>,
-    mut event_reader: EventReader<EDotEaten>,
-) {
+fn add_points_for_eaten_dot(mut score: ResMut<Score>, mut event_reader: EventReader<EDotEaten>) {
     for _ in event_reader.iter() {
         score.add(POINTS_PER_DOT)
     }
@@ -167,7 +162,13 @@ fn add_points_for_eaten_ghost_and_display_score_text(
 
         let mut coordinates = event.1.translation;
         coordinates.z = TEXT_Z;
-        spawn_score_text(&mut commands, &game_asset_handles, Color::hex("31FFFF").unwrap(), points, coordinates)
+        spawn_score_text(
+            &mut commands,
+            &game_asset_handles,
+            Color::hex("31FFFF").unwrap(),
+            points,
+            coordinates,
+        )
     }
 }
 
@@ -197,14 +198,20 @@ fn add_points_for_eaten_fruit_and_display_score_text(
             Grapes => 1000,
             Galaxian => 2000,
             Bell => 3000,
-            Key => 5000
+            Key => 5000,
         };
 
         let mut coordinates = transform.translation;
         coordinates.z = TEXT_Z;
 
         score.add(points);
-        spawn_score_text(&mut commands, &game_asset_handles, Color::hex("FFBDFF").unwrap(), points, coordinates)
+        spawn_score_text(
+            &mut commands,
+            &game_asset_handles,
+            Color::hex("FFBDFF").unwrap(),
+            points,
+            coordinates,
+        )
     }
 }
 
@@ -213,34 +220,33 @@ fn spawn_score_text(
     game_asset_handles: &LoadedAssets,
     color: Color,
     points: usize,
-    coordinates: Vec3
+    coordinates: Vec3,
 ) {
-    commands.spawn_bundle(Text2dBundle {
-        text: Text::from_section(
-            points.to_string(),
-            TextStyle {
-                font: game_asset_handles.get_handle(FONT),
-                font_size: 10.0,
-                color,
-            },
-        ).with_alignment(
-            TextAlignment {
+    commands
+        .spawn_bundle(Text2dBundle {
+            text: Text::from_section(
+                points.to_string(),
+                TextStyle {
+                    font: game_asset_handles.get_handle(FONT),
+                    font_size: 10.0,
+                    color,
+                },
+            )
+            .with_alignment(TextAlignment {
                 vertical: VerticalAlign::Center,
                 horizontal: HorizontalAlign::Center,
-            }
-        ),
-        transform: Transform::from_translation(coordinates),
-        ..Default::default()
-    })
+            }),
+            transform: Transform::from_translation(coordinates),
+            ..Default::default()
+        })
         .insert(ScoreText)
-        .insert(ScoreTextTimer(Timer::new(Duration::from_secs(1), false)))
-    ;
+        .insert(ScoreTextTimer(Timer::new(Duration::from_secs(1), false)));
 }
 
 fn update_score_texts(
     mut commands: Commands,
     time: Res<Time>,
-    mut query: Query<(Entity, &mut ScoreTextTimer), With<ScoreText>>
+    mut query: Query<(Entity, &mut ScoreTextTimer), With<ScoreText>>,
 ) {
     for (entity, mut timer) in &mut query {
         timer.tick(time.delta());
@@ -251,10 +257,7 @@ fn update_score_texts(
     }
 }
 
-fn despawn_score_texts(
-    mut commands: Commands,
-    query: Query<Entity, With<ScoreText>>
-) {
+fn despawn_score_texts(mut commands: Commands, query: Query<Entity, With<ScoreText>>) {
     for e in &query {
         commands.entity(e).despawn()
     }

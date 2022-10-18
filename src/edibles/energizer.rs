@@ -1,14 +1,14 @@
-use std::time::Duration;
-use bevy::prelude::*;
 use crate::board_dimensions::BoardDimensions;
+use bevy::prelude::*;
+use std::time::Duration;
 
 use crate::constants::ENERGIZER_Z;
 use crate::edibles::Edible;
 use crate::game_assets::loaded_assets::LoadedAssets;
 use crate::interactions::EEnergizerEaten;
-use crate::life_cycle::LifeCycle::*;
 use crate::is;
 use crate::level::Level;
+use crate::life_cycle::LifeCycle::*;
 use crate::map::Element::EnergizerSpawn;
 use crate::map::Map;
 use crate::specs_per_level::SpecsPerLevel;
@@ -17,25 +17,20 @@ pub struct EnergizerPlugin;
 
 impl Plugin for EnergizerPlugin {
     fn build(&self, app: &mut App) {
-        app
-
-            .add_event::<EnergizerOver>()
-            .add_system_set(
-                SystemSet::on_enter(Start).with_system(spawn_energizer)
-            )
+        app.add_event::<EnergizerOver>()
+            .add_system_set(SystemSet::on_enter(Start).with_system(spawn_energizer))
             .add_system_set(
                 SystemSet::on_update(Running)
                     .with_system(start_energizer_timer_when_energizer_eaten)
-                    .with_system(update_energizer_timer.after(start_energizer_timer_when_energizer_eaten))
+                    .with_system(
+                        update_energizer_timer.after(start_energizer_timer_when_energizer_eaten),
+                    ),
             )
-            .add_system_set(
-                SystemSet::on_exit(LevelTransition).with_system(spawn_energizer)
-            )
-        ;
+            .add_system_set(SystemSet::on_exit(LevelTransition).with_system(spawn_energizer));
     }
 }
 
-/// An energizer that allows pacman to eat ghosts.
+/// An energizer that allows capman to eat ghosts.
 #[derive(Component)]
 pub struct Energizer;
 
@@ -50,7 +45,7 @@ pub struct EnergizerTimer {
 impl EnergizerTimer {
     fn start(seconds: f32) -> Self {
         EnergizerTimer {
-            timer: Timer::from_seconds(seconds, false)
+            timer: Timer::from_seconds(seconds, false),
         }
     }
 
@@ -72,13 +67,14 @@ fn spawn_energizer(
     mut commands: Commands,
     map: Res<Map>,
     game_asset_handles: Res<LoadedAssets>,
-    dimensions: Res<BoardDimensions>
+    dimensions: Res<BoardDimensions>,
 ) {
     let energizer_dimension = Vec2::new(dimensions.energizer(), dimensions.energizer());
     for position in map.get_positions_matching(is!(EnergizerSpawn)) {
         let transform = dimensions.pos_to_trans(position, ENERGIZER_Z);
 
-        commands.spawn()
+        commands
+            .spawn()
             .insert_bundle(SpriteBundle {
                 texture: game_asset_handles.get_handle("textures/energizer.png"),
                 sprite: Sprite {
@@ -89,8 +85,7 @@ fn spawn_energizer(
                 ..Default::default()
             })
             .insert(Energizer)
-            .insert(Edible)
-        ;
+            .insert(Edible);
     }
 }
 
@@ -98,7 +93,7 @@ fn start_energizer_timer_when_energizer_eaten(
     mut commands: Commands,
     mut event_reader: EventReader<EEnergizerEaten>,
     level: Res<Level>,
-    specs_per_level: Res<SpecsPerLevel>
+    specs_per_level: Res<SpecsPerLevel>,
 ) {
     for _ in event_reader.iter() {
         let spec = specs_per_level.get_for(&level);

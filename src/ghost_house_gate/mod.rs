@@ -2,12 +2,12 @@ use bevy::prelude::*;
 use std::collections::HashSet;
 use std::time::Duration;
 
-use crate::life_cycle::LifeCycle::*;
+use crate::ghost_house_gate::counter::Counter;
 use crate::ghosts::Ghost;
 use crate::ghosts::Ghost::*;
+use crate::interactions::{ECapmanHit, EDotEaten};
 use crate::level::Level;
-use crate::ghost_house_gate::counter::Counter;
-use crate::interactions::{EDotEaten, EPacmanHit};
+use crate::life_cycle::LifeCycle::*;
 
 mod counter;
 
@@ -17,31 +17,21 @@ pub struct GhostHouseGatePlugin;
 
 impl Plugin for GhostHouseGatePlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_system_set(
-                SystemSet::on_enter(Start).with_system(create_gate)
-            )
+        app.add_system_set(SystemSet::on_enter(Start).with_system(create_gate))
             .add_system_set(
                 SystemSet::on_update(Running)
                     .with_system(update_ghost_house_gate)
                     .with_system(increment_counter_when_dot_eaten)
-                    .with_system(switch_to_global_counter_when_pacman_got_killed)
-            )
-        ;
+                    .with_system(switch_to_global_counter_when_capman_got_killed),
+            );
     }
 }
 
-fn create_gate(
-    mut commands: Commands,
-    level: Res<Level>,
-) {
+fn create_gate(mut commands: Commands, level: Res<Level>) {
     commands.insert_resource(GhostHouseGate::new(&level));
 }
 
-fn update_ghost_house_gate(
-    time: Res<Time>,
-    mut ghost_house_gate: ResMut<GhostHouseGate>,
-) {
+fn update_ghost_house_gate(time: Res<Time>, mut ghost_house_gate: ResMut<GhostHouseGate>) {
     ghost_house_gate.update(time.delta())
 }
 
@@ -54,8 +44,8 @@ fn increment_counter_when_dot_eaten(
     }
 }
 
-fn switch_to_global_counter_when_pacman_got_killed(
-    mut event_reader: EventReader<EPacmanHit>,
+fn switch_to_global_counter_when_capman_got_killed(
+    mut event_reader: EventReader<ECapmanHit>,
     mut ghost_house_gate: ResMut<GhostHouseGate>,
 ) {
     for _ in event_reader.iter() {
@@ -69,7 +59,7 @@ fn switch_to_global_counter_when_pacman_got_killed(
 ///
 /// There are two types of counters: one which counts per ghost and a global counter. At the beginning
 /// of the game, the per ghost counter is set to zero for each ghost and the global counter is inactive.
-/// If pacman eats a dot, the current counter gets incremented.
+/// If capman eats a dot, the current counter gets incremented.
 ///
 /// If the per ghost counter is active, a ghost can leave if its personal limit is reached. Only
 /// the counter from the currently waiting ghost is incremented.
@@ -77,12 +67,12 @@ fn switch_to_global_counter_when_pacman_got_killed(
 /// The order of preference for ghosts is Blinky, Pinky, Inky and Clyde. Blinky and Pinky can always
 /// leave the house at the beginning of the game.
 ///
-/// If pacman dies, the per ghost counter is switched with a newly initialized global one (while retaining
+/// If capman dies, the per ghost counter is switched with a newly initialized global one (while retaining
 /// the per ghost one). The waiting ghost can now leave when its predefined limit is reached. When
 /// Clyde left the house, the counter switches back to the per ghost one.
 ///
 /// There is also a timer active. If the timer reaches zero, the waiting ghost can return immediately.
-/// The timer gets reset when pacman eats a dot.
+/// The timer gets reset when capman eats a dot.
 pub struct GhostHouseGate {
     released_ghosts: HashSet<Ghost>,
     ghost_preference_iterator: GhostPreferenceIterator,
@@ -108,7 +98,7 @@ impl GhostHouseGate {
     fn create_release_timer_for_level(level: &Level) -> Timer {
         match **level {
             l if l < 5 => Timer::from_seconds(4.0, false),
-            _ => Timer::from_seconds(3.0, false)
+            _ => Timer::from_seconds(3.0, false),
         }
     }
 
@@ -124,18 +114,23 @@ impl GhostHouseGate {
         self.counter.increment(&self.current_waiting_ghost)
     }
 
-    /// Switch to the global counter. Typically called when pacman died.
+    /// Switch to the global counter. Typically called when capman died.
     fn switch_to_global_counter(&mut self) {
         self.counter.switch_to_global();
         self.release_timer.reset();
         self.released_ghosts.clear();
         self.ghost_preference_iterator = GhostPreferenceIterator::new();
-        self.current_waiting_ghost = self.ghost_preference_iterator.next().expect("first item should exists");
+        self.current_waiting_ghost = self
+            .ghost_preference_iterator
+            .next()
+            .expect("first item should exists");
     }
 
     /// Proceed the release timer and check if the current waiting ghost can be released.
     fn update(&mut self, delta: Duration) {
-        if self.all_ghosts_released() { return; }
+        if self.all_ghosts_released() {
+            return;
+        }
 
         self.release_timer.tick(delta);
 

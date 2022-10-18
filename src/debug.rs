@@ -1,24 +1,24 @@
+use crate::board_dimensions::BoardDimensions;
+use crate::capman::Capman;
+use crate::common::Direction;
+use crate::constants::{FONT, WINDOW_HEIGHT, WINDOW_WIDTH};
+use crate::edibles::dots::EatenDots;
+use crate::edibles::energizer::EnergizerTimer;
+use crate::edibles::fruit::FruitDespawnTimer;
+use crate::edibles::Edible;
+use crate::game_assets::loaded_assets::LoadedAssets;
+use crate::ghosts::state::State;
+use crate::ghosts::Ghost;
+use crate::ghosts::Ghost::*;
+use crate::level::Level;
+use crate::life_cycle::LifeCycle;
+use crate::life_cycle::LifeCycle::Loading;
 use bevy::diagnostic::{Diagnostics, DiagnosticsPlugin, FrameTimeDiagnosticsPlugin};
 use bevy::prelude::*;
 use bevy::text::Text2dBounds;
-use crate::board_dimensions::BoardDimensions;
-use crate::constants::{FONT, WINDOW_HEIGHT, WINDOW_WIDTH};
-use crate::edibles::dots::EatenDots;
-use crate::game_assets::loaded_assets::LoadedAssets;
-use crate::level::Level;
-use crate::life_cycle::LifeCycle::Loading;
-use crate::common::Direction;
-use crate::edibles::Edible;
-use crate::edibles::energizer::EnergizerTimer;
-use crate::edibles::fruit::FruitDespawnTimer;
-use crate::ghosts::Ghost;
-use crate::ghosts::Ghost::*;
-use crate::pacman::Pacman;
-use crate::ghosts::state::State;
-use crate::life_cycle::LifeCycle;
 
 const WHITE: Color = Color::rgb(1.0, 1.0, 1.0);
-const PACMAN_COLOR: Color = Color::rgb(1.0, 1.0, 0.0);
+const CAPMAN_COLOR: Color = Color::rgb(1.0, 1.0, 0.0);
 const BLINKY_COLOR: Color = Color::rgb(1.0, 0.0, 0.0);
 const PINKY_COLOR: Color = Color::rgb(1.0, 156.0 / 255.0, 206.0 / 255.0);
 const INKY_COLOR: Color = Color::rgb(49.0 / 255.0, 1.0, 1.0);
@@ -29,7 +29,7 @@ const FPS_COUNTER: &'static str = "fps_counter";
 const LIFE_CYCLE: &'static str = "life_cycle";
 const DOTS_EATEN: &'static str = "dots_eaten";
 const LEVEL: &'static str = "level";
-const PACMAN: &'static str = "pacman";
+const CAPMAN: &'static str = "capman";
 const BLINKY: &'static str = "blinky";
 const PINKY: &'static str = "pinky";
 const INKY: &'static str = "inky";
@@ -41,17 +41,14 @@ pub struct DebugPlugin;
 
 impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_plugin(DiagnosticsPlugin)
+        app.add_plugin(DiagnosticsPlugin)
             .add_plugin(FrameTimeDiagnosticsPlugin)
-            .add_system_set(
-                SystemSet::on_exit(Loading).with_system(spawn_debug_uis)
-            )
+            .add_system_set(SystemSet::on_exit(Loading).with_system(spawn_debug_uis))
             .add_system(update_fps_counter)
             .add_system(update_lifecycle_ui)
             .add_system(update_dots_eaten_remaining)
             .add_system(update_level_ui)
-            .add_system(update_pacman_ui)
+            .add_system(update_capman_ui)
             .add_system(update_blinky_ui)
             .add_system(update_pinky_ui)
             .add_system(update_inky_ui)
@@ -59,34 +56,32 @@ impl Plugin for DebugPlugin {
             .add_system(update_energizer_timer_ui)
             .add_system(update_fruit_despawn_timer_ui)
             .add_system(toggle_debug_ui_visibility)
-            .add_system(despawn_all_edibles_on_key_press)
-        ;
+            .add_system(despawn_all_edibles_on_key_press);
     }
 }
 
-fn spawn_debug_uis(
-    mut commands: Commands,
-    game_asset_handles: Res<LoadedAssets>,
-) {
+fn spawn_debug_uis(mut commands: Commands, game_asset_handles: Res<LoadedAssets>) {
     spawn_uis(
         [
             (FPS_COUNTER, WHITE),
             (LIFE_CYCLE, WHITE),
             (DOTS_EATEN, WHITE),
             (LEVEL, WHITE),
-            (PACMAN, PACMAN_COLOR),
+            (CAPMAN, CAPMAN_COLOR),
             (BLINKY, BLINKY_COLOR),
             (PINKY, PINKY_COLOR),
             (INKY, INKY_COLOR),
             (CLYDE, CLYDE_COLOR),
             (ENERGIZER_TIMER, WHITE),
-            (FRUIT_DESPAWN_TIMER, WHITE)
+            (FRUIT_DESPAWN_TIMER, WHITE),
         ],
-        &mut commands, &game_asset_handles)
+        &mut commands,
+        &game_asset_handles,
+    )
 }
 
 fn spawn_uis(
-    names_colors: impl IntoIterator<Item=(&'static str, Color)>,
+    names_colors: impl IntoIterator<Item = (&'static str, Color)>,
     commands: &mut Commands,
     game_asset_handles: &LoadedAssets,
 ) {
@@ -94,31 +89,40 @@ fn spawn_uis(
     names_colors
         .into_iter()
         .enumerate()
-        .for_each(|(i, (name, color))| spawn_ui(commands, font.clone(), name, WINDOW_HEIGHT - UI_HEIGHT * (i as f32), color))
+        .for_each(|(i, (name, color))| {
+            spawn_ui(
+                commands,
+                font.clone(),
+                name,
+                WINDOW_HEIGHT - UI_HEIGHT * (i as f32),
+                color,
+            )
+        })
 }
 
 fn spawn_ui(commands: &mut Commands, font: Handle<Font>, name: &'static str, y: f32, color: Color) {
     let size = Vec2::new(WINDOW_WIDTH, UI_HEIGHT);
 
-    commands.spawn_bundle(Text2dBundle {
-        text: Text::from_section(
-            String::new(),
-            TextStyle {
-                font,
-                font_size: 7.0,
-                color,
-            },
-        ).with_alignment(
-            TextAlignment {
+    commands
+        .spawn_bundle(Text2dBundle {
+            text: Text::from_section(
+                String::new(),
+                TextStyle {
+                    font,
+                    font_size: 7.0,
+                    color,
+                },
+            )
+            .with_alignment(TextAlignment {
                 vertical: VerticalAlign::Top,
                 horizontal: HorizontalAlign::Left,
-            }
-        ),
-        transform: Transform::from_translation(Vec3::new(0.0, y, 0.0)),
-        visibility: Visibility { is_visible: false },
-        text_2d_bounds: Text2dBounds { size },
-        ..Default::default()
-    }).insert(DebugUI(name));
+            }),
+            transform: Transform::from_translation(Vec3::new(0.0, y, 0.0)),
+            visibility: Visibility { is_visible: false },
+            text_2d_bounds: Text2dBounds { size },
+            ..Default::default()
+        })
+        .insert(DebugUI(name));
 }
 
 fn update_fps_counter(
@@ -129,9 +133,9 @@ fn update_fps_counter(
         let frame_count = match diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
             Some(diag) => match diag.value() {
                 Some(val) => val,
-                None => return
+                None => return,
             },
-            None => return
+            None => return,
         };
 
         for (mut text, ui) in &mut query {
@@ -164,8 +168,10 @@ fn update_dots_eaten_remaining(
     for (mut text, ui) in &mut query {
         if **ui == DOTS_EATEN {
             let value = match &eaten_dots {
-                Some(eaten_dots) => format!("{} / {}", eaten_dots.get_eaten(), eaten_dots.get_max()),
-                None => String::new()
+                Some(eaten_dots) => {
+                    format!("{} / {}", eaten_dots.get_eaten(), eaten_dots.get_max())
+                }
+                None => String::new(),
             };
 
             text.sections[0].value = format!("Dots: {}", value)
@@ -173,15 +179,12 @@ fn update_dots_eaten_remaining(
     }
 }
 
-fn update_level_ui(
-    level: Option<Res<Level>>,
-    mut query: Query<(&mut Text, &DebugUI)>,
-) {
+fn update_level_ui(level: Option<Res<Level>>, mut query: Query<(&mut Text, &DebugUI)>) {
     for (mut text, ui) in &mut query {
         if **ui == LEVEL {
             let value = match &level {
                 Some(level) => format!("{}", ***level),
-                None => "/".to_string()
+                None => "/".to_string(),
             };
 
             text.sections[0].value = format!("Level: {}", value)
@@ -189,26 +192,31 @@ fn update_level_ui(
     }
 }
 
-fn update_pacman_ui(
+fn update_capman_ui(
     dimensions: Option<Res<BoardDimensions>>,
-    pacman_query: Query<(&Transform, &Direction), With<Pacman>>,
+    capman_query: Query<(&Transform, &Direction), With<Capman>>,
     mut ui_query: Query<(&mut Text, &DebugUI)>,
 ) {
     let dimensions = match dimensions {
         Some(d) => d,
-        None => return
+        None => return,
     };
-    let comps = pacman_query.get_single();
+    let comps = capman_query.get_single();
 
     for (mut text, ui) in &mut ui_query {
-        if **ui == PACMAN {
+        if **ui == CAPMAN {
             text.sections[0].value = match comps {
                 Ok((transform, direction)) => {
                     let coordinates = transform.translation;
                     let position = dimensions.vec_to_pos(&coordinates);
-                    format!("{}, {}, {}", format_coordinates(coordinates), position, direction)
+                    format!(
+                        "{}, {}, {}",
+                        format_coordinates(coordinates),
+                        position,
+                        direction
+                    )
                 }
-                _ => format!("-")
+                _ => format!("-"),
             };
         }
     }
@@ -221,7 +229,7 @@ fn update_blinky_ui(
 ) {
     let dimensions = match dimensions {
         Some(d) => d,
-        None => return
+        None => return,
     };
 
     for (ghost, transform, dir, state) in &blinky_query {
@@ -231,7 +239,8 @@ fn update_blinky_ui(
 
         for (mut text, ui) in &mut ui_query {
             if **ui == BLINKY {
-                text.sections[0].value = create_ghost_debug_text((transform, dir, state), &dimensions);
+                text.sections[0].value =
+                    create_ghost_debug_text((transform, dir, state), &dimensions);
             }
         }
     }
@@ -244,7 +253,7 @@ fn update_pinky_ui(
 ) {
     let dimensions = match dimensions {
         Some(d) => d,
-        None => return
+        None => return,
     };
     for (ghost, transform, dir, state) in &pinky_query {
         if ghost != &Pinky {
@@ -253,7 +262,8 @@ fn update_pinky_ui(
 
         for (mut text, ui) in &mut ui_query {
             if **ui == PINKY {
-                text.sections[0].value = create_ghost_debug_text((transform, dir, state), &dimensions);
+                text.sections[0].value =
+                    create_ghost_debug_text((transform, dir, state), &dimensions);
             }
         }
     }
@@ -266,7 +276,7 @@ fn update_inky_ui(
 ) {
     let dimensions = match dimensions {
         Some(d) => d,
-        None => return
+        None => return,
     };
     for (ghost, transform, dir, state) in &inky_query {
         if ghost != &Inky {
@@ -275,7 +285,8 @@ fn update_inky_ui(
 
         for (mut text, ui) in &mut ui_query {
             if **ui == INKY {
-                text.sections[0].value = create_ghost_debug_text((transform, dir, state), &dimensions);
+                text.sections[0].value =
+                    create_ghost_debug_text((transform, dir, state), &dimensions);
             }
         }
     }
@@ -288,7 +299,7 @@ fn update_clyde_ui(
 ) {
     let dimensions = match dimensions {
         Some(d) => d,
-        None => return
+        None => return,
     };
     for (ghost, transform, dir, state) in &clyde_query {
         if ghost != &Clyde {
@@ -297,21 +308,34 @@ fn update_clyde_ui(
 
         for (mut text, ui) in &mut ui_query {
             if **ui == CLYDE {
-                text.sections[0].value = create_ghost_debug_text((transform, dir, state), &dimensions);
+                text.sections[0].value =
+                    create_ghost_debug_text((transform, dir, state), &dimensions);
             }
         }
     }
 }
 
-fn create_ghost_debug_text(comps: (&Transform, &Direction, &State), dimensions: &BoardDimensions) -> String {
+fn create_ghost_debug_text(
+    comps: (&Transform, &Direction, &State),
+    dimensions: &BoardDimensions,
+) -> String {
     let (transform, direction, state) = comps;
     let coordinates = transform.translation;
     let position = dimensions.vec_to_pos(&coordinates);
-    format!("{}, {}, {}, {}", format_coordinates(coordinates), position, direction, state)
+    format!(
+        "{}, {}, {}, {}",
+        format_coordinates(coordinates),
+        position,
+        direction,
+        state
+    )
 }
 
 fn format_coordinates(coordinates: Vec3) -> String {
-    format!("({:.2}, {:.2}, {:.2})", coordinates.x, coordinates.y, coordinates.z)
+    format!(
+        "({:.2}, {:.2}, {:.2})",
+        coordinates.x, coordinates.y, coordinates.z
+    )
 }
 
 fn update_energizer_timer_ui(
@@ -320,10 +344,13 @@ fn update_energizer_timer_ui(
 ) {
     for (mut text, ui) in &mut ui_query {
         if **ui == ENERGIZER_TIMER {
-            text.sections[0].value = format!("EnergizerTimer: {}", match energizer_timer {
-                Some(ref timer) => timer.remaining().to_string(),
-                None => "-".to_string()
-            })
+            text.sections[0].value = format!(
+                "EnergizerTimer: {}",
+                match energizer_timer {
+                    Some(ref timer) => timer.remaining().to_string(),
+                    None => "-".to_string(),
+                }
+            )
         }
     }
 }
@@ -334,10 +361,14 @@ fn update_fruit_despawn_timer_ui(
 ) {
     for (mut text, ui) in &mut ui_query {
         if **ui == FRUIT_DESPAWN_TIMER {
-            text.sections[0].value = format!("FruitTimer: {}", match fruit_despawn_timer {
-                Some(ref timer) => (timer.duration().as_secs_f32() - timer.elapsed_secs()).to_string(),
-                None => "-".to_string()
-            })
+            text.sections[0].value = format!(
+                "FruitTimer: {}",
+                match fruit_despawn_timer {
+                    Some(ref timer) =>
+                        (timer.duration().as_secs_f32() - timer.elapsed_secs()).to_string(),
+                    None => "-".to_string(),
+                }
+            )
         }
     }
 }
