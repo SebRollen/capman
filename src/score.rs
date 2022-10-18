@@ -78,32 +78,9 @@ fn create_score_boards(
         })
         .insert(ScoreBoard);
 
-    commands
-        .spawn_bundle(Text2dBundle {
-            text: Text::from_section(
-                "0".to_string(),
-                TextStyle {
-                    font: game_asset_handles.get_handle(FONT),
-                    font_size: 20.0,
-                    color: Color::rgb(1.0, 1.0, 1.0),
-                },
-            )
-            .with_alignment(TextAlignment {
-                vertical: VerticalAlign::Center,
-                horizontal: HorizontalAlign::Center,
-            }),
-            transform: Transform::from_xyz(
-                origin.x + dimensions.board_width() / 2.0,
-                origin.y + dimensions.board_height(),
-                0.0,
-            ),
-            ..Default::default()
-        })
-        .insert(ScoreBoard);
-
     commands.spawn_bundle(Text2dBundle {
         text: Text::from_section(
-            "HIGH SCORE".to_string(),
+            "CAPMAN".to_string(),
             TextStyle {
                 font: game_asset_handles.get_handle(FONT),
                 font_size: 20.0,
